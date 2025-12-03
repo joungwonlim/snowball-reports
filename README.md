@@ -8,7 +8,7 @@
 
 ```
 Username: admin
-Password: aegis2024
+Password: aegis337
 ```
 
 ## 🌐 Pages

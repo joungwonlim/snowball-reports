@@ -265,10 +265,10 @@
                 const passwordHash = await sha256(password);
 
                 // 하드코딩된 credential (실제로는 서버에서 검증해야 함)
-                // Username: admin, Password: aegis2024
-                // aegis2024의 SHA-256: e6f6e0f4d3f4c8e5a7b9c2d1e0f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1
+                // Username: admin, Password: aegis337
+                // aegis337의 SHA-256: ceb8a0615e2c4d18c0d101c411b97c517881a47a4fabd4146f32548952194773
                 const VALID_USERNAME = 'admin';
-                const VALID_PASSWORD_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // aegis2024
+                const VALID_PASSWORD_HASH = 'ceb8a0615e2c4d18c0d101c411b97c517881a47a4fabd4146f32548952194773'; // aegis337
 
                 if (username === VALID_USERNAME && passwordHash === VALID_PASSWORD_HASH) {
                     // 로그인 성공
