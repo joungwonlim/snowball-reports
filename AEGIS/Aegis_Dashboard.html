@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEGIS Reports Dashboard</title>
+    <script>
+        // 인증 체크
+        if (!sessionStorage.getItem('aegis_auth_token')) {
+            window.location.href = '../login.html';
+        }
+
+        // 세션 타임아웃 체크 (4시간)
+        const authTime = sessionStorage.getItem('aegis_auth_time');
+        if (authTime && (Date.now() - parseInt(authTime)) > 4 * 60 * 60 * 1000) {
+            sessionStorage.clear();
+            alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+            window.location.href = '../login.html';
+        }
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 헤더 */
+        .header {
+            background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 100%;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 30px;
+            font-size: 14px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        /* 상단 메뉴바 */
+        .top-menu {
+            background: white;
+            border-bottom: 2px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 1000;
+            min-height: 60px;
+            flex-shrink: 0;
+            overflow: visible;
+        }
+
+        .search-box {
+            padding: 12px 0;
+            margin-right: 20px;
+        }
+
+        .search-box input {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            width: 250px;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: #1a237e;
+        }
+
+        .menu-bar {
+            display: flex;
+            flex: 1;
+            gap: 5px;
+        }
+
+        .menu-item {
+            position: relative;
+            z-index: 100;
+        }
+
+        .folder-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .folder-button:hover {
+            background: #f5f5f5;
+            color: #1a237e;
+        }
+
+        .folder-button.active {
+            color: #1a237e;
+            border-bottom-color: #1a237e;
+            background: #e3f2fd;
+        }
+
+        .folder-count {
+            background: #e0e0e0;
+            color: #666;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: normal;
+        }
+
+        .folder-button.active .folder-count {
+            background: #1a237e;
+            color: white;
+        }
+
+        .dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 280px;
+            max-width: 400px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-height: 500px;
+            overflow-y: auto;
+            z-index: 10000;
+        }
+
+        .dropdown.show {
+            display: block;
+        }
+
+        .file-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            color: #666;
+            font-size: 14px;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .file-item:hover {
+            background: #f5f5f5;
+            color: #333;
+            border-left-color: #bbdefb;
+        }
+
+        .file-item.active {
+            background: #e3f2fd;
+            color: #0d47a1;
+            font-weight: 500;
+            border-left-color: #1a237e;
+        }
+
+        /* PDF 뷰어 영역 */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #e8e8e8;
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+        }
+
+        .viewer-header {
+            background: white;
+            padding: 12px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .current-file {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .viewer-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            background: #1a237e;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #0d47a1;
+        }
+
+        .pdf-viewer {
+            flex: 1;
+            background: #525252;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pdf-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .no-selection {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+        }
+
+        .no-selection-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .no-selection-text {
+            font-size: 18px;
+        }
+
+        /* 스크롤바 스타일 */
+        .dropdown::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .dropdown::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .dropdown::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        .dropdown::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+
+        .menu-bar::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .menu-bar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .menu-bar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        /* 로그아웃 버튼 */
+        .logout-btn {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            padding: 8px 16px;
+            background: rgba(244, 67, 54, 0.8);
+            color: white;
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            z-index: 2000;
+        }
+
+        .logout-btn:hover {
+            background: rgba(244, 67, 54, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
+        }
+
+        .user-info {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            padding: 8px 14px;
+            background: rgba(26, 35, 126, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #90caf9;
+            font-size: 13px;
+            z-index: 2000;
+        }
+
+        .home-btn {
+            position: fixed;
+            top: 120px;
+            right: 20px;
+            padding: 8px 16px;
+            background: rgba(100, 181, 246, 0.2);
+            color: #64b5f6;
+            border: 1px solid rgba(100, 181, 246, 0.3);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            z-index: 2000;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .home-btn:hover {
+            background: rgba(100, 181, 246, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(100, 181, 246, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="user-info" id="userInfo">👤 Loading...</div>
+    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+    <a href="../index.html" class="home-btn">🏠 Home</a>
+
+    <!-- 헤더 -->
+    <div class="header">
+        <div class="header-content">
+            <h1>📊 AEGIS Reports Dashboard</h1>
+            <div class="header-stats">
+                <div class="stat-item">
+                    <div class="stat-value">6</div>
+                    <div class="stat-label">Folders</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">36</div>
+                    <div class="stat-label">Reports</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 상단 메뉴바 -->
+    <div class="top-menu">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="🔍 Search reports...">
+        </div>
+
+        <div class="menu-bar">
+            <div class="menu-item">
+                <button class="folder-button" onclick="toggleDropdown('AEGIS')">
+                    <span>📁 AEGIS</span>
+                    <span class="folder-count">9</span>
+                </button>
+                <div class="dropdown" id="dropdown-AEGIS">
+                    <div class="file-item" onclick="openPDF('AEGIS/Aegis_Dashboard.pdf', 'Aegis_Dashboard.pdf')">
+                        📄 Aegis_Dashboard.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('AEGIS/Aegis_Design.pdf', 'Aegis_Design.pdf')">
+                        📄 Aegis_Design.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('AEGIS/Ai_Logic.pdf', 'Ai_Logic.pdf')">
+                        📄 Ai_Logic.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('AEGIS/Fetcher_Logic.pdf', 'Fetcher_Logic.pdf')">
+                        📄 Fetcher_Logic.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('AEGIS/Picks_Logic.pdf', 'Picks_Logic.pdf')">
+                        📄 Picks_Logic.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('AEGIS/Realtime_Kis_Logic.pdf', 'Realtime_Kis_Logic.pdf')">
+                        📄 Realtime_Kis_Logic.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('AEGIS/Realtime_Logic.pdf', 'Realtime_Logic.pdf')">
+                        📄 Realtime_Logic.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('AEGIS/Schedule_Logic.pdf', 'Schedule_Logic.pdf')">
+                        📄 Schedule_Logic.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('AEGIS/Stocks_Logic.pdf', 'Stocks_Logic.pdf')">
+                        📄 Stocks_Logic.pdf
+                    </div>
+                </div>
+            </div>
+            <div class="menu-item">
+                <button class="folder-button" onclick="toggleDropdown('Picks')">
+                    <span>📁 Picks</span>
+                    <span class="folder-count">4</span>
+                </button>
+                <div class="dropdown" id="dropdown-Picks">
+                    <div class="file-item" onclick="openPDF('Picks/Ocean.pdf', 'Ocean.pdf')">
+                        📄 Ocean.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Picks/latest/Pickme.pdf', 'Pickme.pdf')">
+                        📄 Pickme.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Picks/latest/Pools.pdf', 'Pools.pdf')">
+                        📄 Pools.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Picks/Tracking.pdf', 'Tracking.pdf')">
+                        📄 Tracking.pdf
+                    </div>
+                </div>
+            </div>
+            <div class="menu-item">
+                <button class="folder-button" onclick="toggleDropdown('Picks_backup')">
+                    <span>📁 Picks_backup</span>
+                    <span class="folder-count">4</span>
+                </button>
+                <div class="dropdown" id="dropdown-Picks_backup">
+                    <div class="file-item" onclick="openPDF('Picks_backup/Ocean.pdf', 'Ocean.pdf')">
+                        📄 Ocean.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Picks_backup/Pickme.pdf', 'Pickme.pdf')">
+                        📄 Pickme.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Picks_backup/Pools.pdf', 'Pools.pdf')">
+                        📄 Pools.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Picks_backup/Tracking.pdf', 'Tracking.pdf')">
+                        📄 Tracking.pdf
+                    </div>
+                </div>
+            </div>
+            <div class="menu-item">
+                <button class="folder-button" onclick="toggleDropdown('Realtime')">
+                    <span>📁 Realtime</span>
+                    <span class="folder-count">4</span>
+                </button>
+                <div class="dropdown" id="dropdown-Realtime">
+                    <div class="file-item" onclick="openPDF('Realtime/Kb_Dashboard.pdf', 'Kb_Dashboard.pdf')">
+                        📄 Kb_Dashboard.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Realtime/Kis_Dashboard.pdf', 'Kis_Dashboard.pdf')">
+                        📄 Kis_Dashboard.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Realtime/Sell.pdf', 'Sell.pdf')">
+                        📄 Sell.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Realtime/Sell_1204.pdf', 'Sell_1204.pdf')">
+                        📄 Sell_1204.pdf
+                    </div>
+                </div>
+            </div>
+            <div class="menu-item">
+                <button class="folder-button" onclick="toggleDropdown('Stocks')">
+                    <span>📁 Stocks</span>
+                    <span class="folder-count">13</span>
+                </button>
+                <div class="dropdown" id="dropdown-Stocks">
+                    <div class="file-item" onclick="openPDF('Stocks/HDC현대산업개발.pdf', 'HDC현대산업개발.pdf')">
+                        📄 HDC현대산업개발.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Stocks/HD현대에너지솔루션.pdf', 'HD현대에너지솔루션.pdf')">
+                        📄 HD현대에너지솔루션.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Stocks/금양그린파워.pdf', '금양그린파워.pdf')">
+                        📄 금양그린파워.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Stocks/대원전선.pdf', '대원전선.pdf')">
+                        📄 대원전선.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Stocks/롯데쇼핑.pdf', '롯데쇼핑.pdf')">
+                        📄 롯데쇼핑.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Stocks/세방전지.pdf', '세방전지.pdf')">
+                        📄 세방전지.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Stocks/세아홀딩스.pdf', '세아홀딩스.pdf')">
+                        📄 세아홀딩스.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Stocks/우리금융지주.pdf', '우리금융지주.pdf')">
+                        📄 우리금융지주.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Stocks/카카오.pdf', '카카오.pdf')">
+                        📄 카카오.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Stocks/파라다이스.pdf', '파라다이스.pdf')">
+                        📄 파라다이스.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Stocks/팬오션.pdf', '팬오션.pdf')">
+                        📄 팬오션.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Stocks/한국전력.pdf', '한국전력.pdf')">
+                        📄 한국전력.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Stocks/한국카본.pdf', '한국카본.pdf')">
+                        📄 한국카본.pdf
+                    </div>
+                </div>
+            </div>
+            <div class="menu-item">
+                <button class="folder-button" onclick="toggleDropdown('Stocks_New')">
+                    <span>📁 Stocks_New</span>
+                    <span class="folder-count">2</span>
+                </button>
+                <div class="dropdown" id="dropdown-Stocks_New">
+                    <div class="file-item" onclick="openPDF('Stocks_New/Picks/Dashboard.pdf', 'Dashboard.pdf')">
+                        📄 Dashboard.pdf
+                    </div>
+                    <div class="file-item" onclick="openPDF('Stocks_New/Picks/Sell.pdf', 'Sell.pdf')">
+                        📄 Sell.pdf
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF 뷰어 영역 -->
+    <div class="content-area">
+        <div class="viewer-header">
+            <div class="current-file" id="currentFile">No file selected</div>
+            <div class="viewer-actions">
+                <button class="btn" onclick="openInNewTab()">Open in New Tab</button>
+            </div>
+        </div>
+
+        <div class="pdf-viewer">
+            <div class="no-selection" id="noSelection">
+                <div class="no-selection-icon">📄</div>
+                <div class="no-selection-text">Select a report from the menu</div>
+            </div>
+            <iframe class="pdf-frame" id="pdfFrame" style="display:none;"></iframe>
+        </div>
+    </div>
+
+    <script>
+        let currentPdfPath = '';
+        let currentDropdown = null;
+
+        // 페이지 로드 시 기본 PDF 표시
+        window.addEventListener('DOMContentLoaded', function() {{
+            const defaultPdfPath = 'Realtime/Kb_Dashboard.pdf';
+            const defaultFileName = 'Kb_Dashboard.pdf';
+
+            // PDF 표시
+            currentPdfPath = defaultPdfPath;
+            document.getElementById('currentFile').textContent = defaultFileName;
+            document.getElementById('noSelection').style.display = 'none';
+            document.getElementById('pdfFrame').style.display = 'block';
+            // 상대경로 계산 (AEGIS 폴더 내 파일은 같은 위치, 다른 폴더는 상위로)
+            const path = defaultPdfPath.startsWith('AEGIS/') ? defaultPdfPath.replace('AEGIS/', '') : '../' + defaultPdfPath;
+            document.getElementById('pdfFrame').src = path;
+        }});
+
+        function toggleDropdown(folderName) {{
+            const dropdown = document.getElementById(`dropdown-${folderName}`);
+            const button = dropdown.previousElementSibling;
+
+            // Close other dropdowns
+            if (currentDropdown && currentDropdown !== dropdown) {
+                currentDropdown.classList.remove('show');
+                currentDropdown.previousElementSibling.classList.remove('active');
+            }
+
+            // Toggle current dropdown
+            const isShowing = dropdown.classList.toggle('show');
+            button.classList.toggle('active');
+
+            currentDropdown = isShowing ? dropdown : null;
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.menu-item')) {
+                document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+                document.querySelectorAll('.folder-button').forEach(b => b.classList.remove('active'));
+                currentDropdown = null;
+            }
+        });
+
+        function openPDF(pdfPath, fileName) {
+            currentPdfPath = pdfPath;
+
+            // Update UI
+            document.getElementById('currentFile').textContent = fileName;
+            document.getElementById('noSelection').style.display = 'none';
+            document.getElementById('pdfFrame').style.display = 'block';
+
+            // Load PDF (상대경로: AEGIS 폴더 내 파일은 같은 위치, 다른 폴더는 상위로)
+            const path = pdfPath.startsWith('AEGIS/') ? pdfPath.replace('AEGIS/', '') : '../' + pdfPath;
+            document.getElementById('pdfFrame').src = path;
+
+            // Update active state
+            document.querySelectorAll('.file-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Close dropdown after selection
+            if (currentDropdown) {
+                currentDropdown.classList.remove('show');
+                currentDropdown.previousElementSibling.classList.remove('active');
+                currentDropdown = null;
+            }
+        }
+
+        function openInNewTab() {
+            if (currentPdfPath) {
+                const path = currentPdfPath.startsWith('AEGIS/') ? currentPdfPath.replace('AEGIS/', '') : '../' + currentPdfPath;
+                window.open(path, '_blank');
+            }
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+
+            document.querySelectorAll('.menu-item').forEach(menuItem => {
+                const dropdown = menuItem.querySelector('.dropdown');
+                const button = menuItem.querySelector('.folder-button');
+                const fileItems = dropdown.querySelectorAll('.file-item');
+
+                let hasVisibleFiles = false;
+
+                fileItems.forEach(item => {
+                    const fileName = item.textContent.toLowerCase();
+                    if (fileName.includes(searchTerm)) {
+                        item.style.display = 'block';
+                        hasVisibleFiles = true;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+
+                // Show/hide menu item based on search
+                if (searchTerm) {
+                    if (hasVisibleFiles) {
+                        menuItem.style.display = 'block';
+                        dropdown.classList.add('show');
+                        button.classList.add('active');
+                    } else {
+                        menuItem.style.display = 'none';
+                    }
+                } else {
+                    menuItem.style.display = 'block';
+                    dropdown.classList.remove('show');
+                    button.classList.remove('active');
+                    fileItems.forEach(item => item.style.display = 'block');
+                }
+            });
+        });
+
+        // 사용자 정보 표시
+        const username = sessionStorage.getItem('aegis_username') || 'User';
+        document.getElementById('userInfo').textContent = `👤 ${username}`;
+
+        // 로그아웃 함수
+        function logout() {
+            if (confirm('로그아웃 하시겠습니까?')) {
+                sessionStorage.clear();
+                window.location.href = '../login.html';
+            }
+        }
+
+        // 키보드 단축키 (Ctrl+L or Cmd+L)
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+                e.preventDefault();
+                logout();
+            }
+        });
+    </script>
+</body>
+</html>

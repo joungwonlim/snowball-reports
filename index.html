@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEGIS - Automated Equity Growth & Intelligence System</title>
+    <script>
+        // 인증 체크
+        if (!sessionStorage.getItem('aegis_auth_token')) {
+            window.location.href = 'login.html';
+        }
+
+        // 세션 타임아웃 체크 (4시간)
+        const authTime = sessionStorage.getItem('aegis_auth_time');
+        if (authTime && (Date.now() - parseInt(authTime)) > 4 * 60 * 60 * 1000) {
+            sessionStorage.clear();
+            alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+            window.location.href = 'login.html';
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a237e 50%, #0d47a1 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 64px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00d4ff, #7c4dff, #ff6ec7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: #64b5f6;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .tagline {
+            font-size: 18px;
+            color: #90caf9;
+            font-style: italic;
+            margin-top: 20px;
+        }
+
+        .hero-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .hero-section p {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #e3f2fd;
+            margin-bottom: 20px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.8s ease-out both;
+        }
+
+        .feature-card:nth-child(1) { animation-delay: 0.3s; }
+        .feature-card:nth-child(2) { animation-delay: 0.4s; }
+        .feature-card:nth-child(3) { animation-delay: 0.5s; }
+        .feature-card:nth-child(4) { animation-delay: 0.6s; }
+        .feature-card:nth-child(5) { animation-delay: 0.7s; }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.3);
+        }
+
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .feature-card h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+            color: #64b5f6;
+        }
+
+        .feature-card p {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #b3e5fc;
+        }
+
+        .cta-section {
+            text-align: center;
+            margin-top: 40px;
+            animation: fadeInUp 0.8s ease-out 0.8s both;
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 20px 50px;
+            background: linear-gradient(135deg, #00d4ff 0%, #7c4dff 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.4);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 40px rgba(0, 212, 255, 0.6);
+        }
+
+        .tech-stack {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeInUp 0.8s ease-out 0.9s both;
+        }
+
+        .tech-stack h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #64b5f6;
+            text-align: center;
+        }
+
+        .tech-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .tech-item {
+            background: rgba(100, 181, 246, 0.1);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            color: #90caf9;
+            border: 1px solid rgba(100, 181, 246, 0.3);
+        }
+
+        footer {
+            margin-top: 60px;
+            text-align: center;
+            color: #64b5f6;
+            font-size: 14px;
+            animation: fadeIn 1s ease-out 1s both;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .logout-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(244, 67, 54, 0.8);
+            color: white;
+            border: 1px solid rgba(244, 67, 54, 0.5);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .logout-btn:hover {
+            background: rgba(244, 67, 54, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
+        }
+
+        .user-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #90caf9;
+            font-size: 14px;
+            z-index: 1000;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 42px;
+                letter-spacing: 4px;
+            }
+
+            .subtitle {
+                font-size: 16px;
+            }
+
+            .tagline {
+                font-size: 14px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-button {
+                padding: 16px 40px;
+                font-size: 18px;
+            }
+
+            .logout-btn, .user-info {
+                position: static;
+                margin: 20px auto;
+                display: block;
+                width: fit-content;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="user-info" id="userInfo">👤 Loading...</div>
+    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+
+    <div class="container">
+        <header>
+            <h1>AEGIS SYSTEM</h1>
+            <p class="subtitle">Under the Aegis of Alpha</p>
+            <p class="tagline">"Turning Volatility into Certainty through Generative AI."</p>
+            <p class="tagline" style="color: #b3e5fc; font-size: 16px;">(생성형 AI를 통해 변동성을 확정된 수익으로 전환한다.)</p>
+        </header>
+
+        <div class="hero-section">
+            <p>
+                AEGIS(이지스)는 단순한 자동매매 프로그램을 넘어선 <strong>차세대 자율주행 투자 엔진(Autonomous Trading Core)</strong>입니다.
+                인간의 개입을 <strong>'0(Zero)'으로 수렴</strong>시키는 Fail-Safe 아키텍처와, 시장의 맥락을 읽는 <strong>Gemini AI + Claude Code</strong>의
+                추론 능력을 결합하여 <strong>24/7 멈추지 않는 수익</strong>을 창출합니다.
+            </p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3>Fail-Safe Governance</h3>
+                <p>"Defense First, Profit Second." - 5단계 안전 프로토콜, 네트워크 단절 시 즉각 자산 보호 Auto-Hedge 모드 가동</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3>LLM-Driven Contextual Alpha</h3>
+                <p>"Beyond Quant, Into Insight." - Gemini AI + Claude Code가 뉴스와 리포트의 행간을 읽어 매매 판단 정확도 극대화</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Real-Time Data Pipeline</h3>
+                <p>"Synchronized with the Pulse of the Market." - KRX/KIS 시세와 글로벌 뉴스를 ms 단위 비동기(Async) 처리</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <h3>End-to-End Zero Touch</h3>
+                <p>"Set It and Forget It." - 종목 발굴 → 진입 → 청산 → 리밸런싱까지 전 과정에서 Human-Error 배제</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">🔄</div>
+                <h3>Recursive Self-Optimization</h3>
+                <p>"Evolving Every Trade." - 모든 매매 기록(Log)을 데이터셋으로 전환하여 알고리즘 스스로 승률 검증/진화</p>
+            </div>
+        </div>
+
+        <div class="cta-section">
+            <a href="AEGIS/Aegis_Dashboard.html" class="cta-button">
+                <span>📊</span>
+                <span>Open Dashboard</span>
+            </a>
+        </div>
+
+        <div class="tech-stack">
+            <h2>💻 Tech Stack</h2>
+            <div class="tech-items">
+                <span class="tech-item">Python 3.11+</span>
+                <span class="tech-item">Google Gemini 1.5 Pro</span>
+                <span class="tech-item">Claude Code (Anthropic)</span>
+                <span class="tech-item">PostgreSQL + SQLAlchemy</span>
+                <span class="tech-item">AsyncIO + Aiohttp</span>
+                <span class="tech-item">Docker Container</span>
+                <span class="tech-item">APScheduler</span>
+                <span class="tech-item">Telegram Bot API</span>
+                <span class="tech-item">KIS API</span>
+            </div>
+        </div>
+
+        <footer>
+            <p>AEGIS SYSTEM Copyright © 2024. All Rights Reserved.</p>
+            <p style="margin-top: 10px; font-size: 16px; color: #ff6ec7;">"Investing at the Speed of AI."</p>
+            <p style="margin-top: 20px; font-size: 12px;">Version 4.0 | 2025-12-04</p>
+        </footer>
+    </div>
+
+    <script>
+        // 사용자 정보 표시
+        const username = sessionStorage.getItem('aegis_username') || 'User';
+        document.getElementById('userInfo').textContent = `👤 ${username}`;
+
+        // 로그아웃 함수
+        function logout() {
+            if (confirm('로그아웃 하시겠습니까?')) {
+                sessionStorage.clear();
+                window.location.href = 'login.html';
+            }
+        }
+
+        // 키보드 단축키 (Ctrl+L or Cmd+L)
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+                e.preventDefault();
+                logout();
+            }
+        });
+    </script>
+</body>
+</html>
