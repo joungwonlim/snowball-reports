@@ -237,36 +237,43 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            padding: 10px 20px;
-            background: rgba(244, 67, 54, 0.8);
+            padding: 12px 24px;
+            background: #f44336;
             color: white;
-            border: 1px solid rgba(244, 67, 54, 0.5);
-            border-radius: 8px;
+            border: 2px solid #d32f2f;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 15px;
+            font-weight: 600;
             transition: all 0.3s ease;
-            z-index: 1000;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.5);
         }
 
         .logout-btn:hover {
-            background: rgba(244, 67, 54, 1);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
+            background: #d32f2f;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(244, 67, 54, 0.6);
+        }
+
+        .logout-btn:active {
+            transform: translateY(-1px);
         }
 
         .user-info {
             position: fixed;
             top: 20px;
             left: 20px;
-            padding: 10px 16px;
-            background: rgba(255, 255, 255, 0.1);
+            padding: 12px 20px;
+            background: rgba(33, 150, 243, 0.2);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #90caf9;
-            font-size: 14px;
-            z-index: 1000;
+            border: 2px solid rgba(33, 150, 243, 0.5);
+            border-radius: 10px;
+            color: #e3f2fd;
+            font-size: 15px;
+            font-weight: 600;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
         }
 
         @media (max-width: 768px) {
